@@ -22,6 +22,12 @@ from now on, as an example `cp -r esp-idf/example .`
 10. And lastly flash to you device `idf.py -p <port> flash monitor`
 
 
+###Caveats
+* This is already hopelessly outdated
+* For some reason, there are many more compile errors when using this build files compared to the toitlang repo
+
+
+### WIP
 minimum needed changes to the esp32 config (More is needed, havent figured it out yet)
 
 * enable nimble ble
