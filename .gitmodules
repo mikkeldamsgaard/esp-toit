@@ -1,0 +1,3 @@
+[submodule "toit"]
+	path = toit
+	url = https://github.com/toitlang/toit
