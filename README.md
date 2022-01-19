@@ -1,4 +1,4 @@
-#Embedded toit module for ESP IDF
+# Embedded toit module for ESP IDF
 This project enables using toit alongside a standard ESP IDF project. 
 The project is still rough around the edges. The features
 * An ESP IDF component
@@ -6,7 +6,7 @@ The project is still rough around the edges. The features
 * A simplified C++ Api for setting up the interoperability 
 * An example ping pong app
 
-###Setup instructions
+### Setup instructions
 This has only been tested on MacOS 12
 1. Clone this repo.
 2. Run `git submodule update --init --recursive`
@@ -22,12 +22,12 @@ from now on, as an example `cp -r esp-idf/example .`
 10. And lastly flash to you device `idf.py -p <port> flash monitor`
 
 
-###Caveats
+### Caveats
 * This is already hopelessly outdated
 * For some reason, there are many more compile errors when using this build files compared to the toitlang repo
 
 
-### WIP
+### WIP (to be explored later)
 minimum needed changes to the esp32 config (More is needed, havent figured it out yet)
 
 * enable nimble ble
