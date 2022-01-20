@@ -2,18 +2,41 @@
 // Use of this source code is governed by a Zero-Clause BSD license that can
 // be found in the examples/LICENSE file.
 
-import uuid
-import rpc_transport show Channel_
+import monitor
+
+TYPE_BASE ::= 100
+TYPE_QUIT ::= TYPE_BASE
+TYPE_STATUS ::= TYPE_QUIT + 1
+TYPE_STREAM_START ::= TYPE_STATUS + 1
 
 main:
-  id ::= uuid.parse "4db6d003-d4c0-4405-b664-dcb3f380e812"
-  native_channel ::= Channel_.open id
+  handler := Handler
 
   print "[TOIT] Initiating ping pong"
-  while true:
-    f ::= native_channel.receive
-    if f != null:
-       print "[TOIT] Received non null frame on stream $(f.stream_id), content=$(f.bytes.to_string)"
-       native_channel.send 0 8 "pong".to_byte_array
-    
+  res := process_send_ 0 TYPE_STATUS "pasfisk".to_byte_array
+  print "[TOIT] Sent off status message, with res $res"
+  handler.wait
   print "Done"
+
+
+class Handler implements SystemMessageHandler_:
+  latch_ := monitor.Latch
+
+  constructor:
+    set_system_message_handler_ TYPE_QUIT this
+    set_system_message_handler_ TYPE_STATUS this
+    5.repeat:
+      set_system_message_handler_ TYPE_STREAM_START + it this
+
+  on_message type gid pid message -> none:
+    assert: type >= TYPE_BASE and type < TYPE_STREAM_START + 5
+    print "[TOIT] got message $type from $pid: $(message.to_string)"
+    if type == TYPE_QUIT:
+        latch_.set null
+        return
+
+    res := process_send_ 0 type "pong".to_byte_array
+    print "[TOIT] replied with pong, res $res"
+
+  wait:
+    latch_.get

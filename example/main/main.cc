@@ -5,8 +5,6 @@
 #include "toit_api.h"
 
 const char *MODULE = "MAIN";
-#define SPOTTUNE
-extern "C" void toit_start();
 
 class SenderThread: public toit::Thread {
 public:
@@ -16,12 +14,15 @@ public:
         while (true) {
             sleep(1);
             if (!running) return;
-            printf("Sender is runnning fine!\n");
 
             auto *msg = reinterpret_cast<uint8*>(malloc(4));
             memcpy(msg, "ping", 4);
-            stream->send(msg, 4);
-            ESP_LOGI(MODULE, "Send msg to toit");
+            if (stream->send(msg, 4)) {
+                printf("[C] ping message send successfully\n");
+            } else {
+                printf("[C] message send failed\n");
+                free(msg);
+            };
         }
     }
 
@@ -33,7 +34,8 @@ public:
 
 
 class Receiver: public toit_api::StreamReceiver {
-    bool receive(toit_api::Stream *stream, uint8 *data, int length) override {
+
+    bool receive(toit_api::Stream *stream, const uint8 *data, int length) override {
         char txt[length+1]; // This will stack overflow if the data is too big.
         memcpy(txt,data, length);
         txt[length] = 0;
@@ -44,7 +46,6 @@ class Receiver: public toit_api::StreamReceiver {
 
 extern "C" {
 void app_main() {
-#ifdef SPOTTUNE
     ESP_LOGI(MODULE, "Starting");
     toit_api::ToitApi::set_up();
 
@@ -63,10 +64,6 @@ void app_main() {
     printf("Joining sender\n");
     sender.join();
     printf("Exit\n");
-#else
-    ESP_LOGI(MODULE, "Starting toit");
-    toit_start();
-#endif
 }
 }
 

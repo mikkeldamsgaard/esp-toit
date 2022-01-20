@@ -63,9 +63,9 @@ target_compile_definitions(${COMPONENT_LIB} INTERFACE
 
 target_compile_options(${COMPONENT_LIB} INTERFACE -UMBEDTLS_CONFIG_FILE)
 
-        # Setup the static library, that needs to be fully included
+# Setup the static library, that needs to be --whole-archive included
 add_library(toit_real STATIC ${srcs})
-target_link_libraries(toit_real $<TARGET_OBJECTS:toit_image>)
+target_link_libraries(${COMPONENT_LIB} INTERFACE $<TARGET_OBJECTS:toit_image>)
 target_include_directories(toit_real PUBLIC include toit/src)
 #target_include_directories(${COMPONENT_LIB} PUBLIC include)
 set_property(TARGET toit_real PROPERTY CXX STANDARD 11)
@@ -86,9 +86,9 @@ target_compile_options(toit_real PRIVATE
         -Os
         -Wno-sign-compare
         -Wall
-        -Wno-error=maybe-uninitialized
-#        -Wno-ignored-qualifiers
+        -Wno-extra
         -fno-rtti
+        -Wno-error=format
         PUBLIC
         -UMBEDTLS_CONFIG_FILE
         )
@@ -105,10 +105,10 @@ foreach(req ${reqs})
         set_property(TARGET toit_real APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${req_lib})
     endif()
 endforeach()
-#add_dependencies(${COMPONENT_LIB} toit_real)
+add_dependencies(${COMPONENT_LIB} toit_real)
 
 # Hook up the interface component lib to the static whole archive lib
-target_link_libraries(${COMPONENT_LIB} INTERFACE toit_real)
-target_link_options(${COMPONENT_LIB} INTERFACE -Wl,--whole-archive ${CMAKE_CURRENT_BINARY_DIR}/libtoit_real.a -Wl,--no-whole-archive)
+#target_link_libraries(${COMPONENT_LIB} INTERFACE toit_real)
+target_link_options(${COMPONENT_LIB} INTERFACE -Wl,--whole-archive esp-idf/esp-toit/libtoit_real.a -Wl,--no-whole-archive)
 
 

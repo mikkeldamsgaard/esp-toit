@@ -1,7 +1,6 @@
 #pragma once
 
 #include "scheduler.h"
-#include "event_sources/rpc_transport.h"
 
 namespace toit_api {
 using namespace toit;
@@ -10,7 +9,7 @@ class Stream;
 
 class StreamReceiver {
 public:
-    virtual bool receive(Stream *stream, uint8 *data, int length) = 0;
+    virtual bool receive(Stream *stream, const uint8 *data, int length) = 0;
 
     friend toit_api::Stream;
 };
@@ -19,7 +18,7 @@ class ToitApi;
 
 class Stream {
 public:
-    Stream(int id, StreamReceiver *receiver, ToitApi *toit_api) : _id(id), _receiver(receiver), _toit_api(toit_api) {}
+    Stream(uint16 id, StreamReceiver *receiver) : _id(id), _receiver(receiver) {}
 
     // Send the byte buffer data to the toit VM.
     //
@@ -29,21 +28,20 @@ public:
     // In case of error the ownership of the buffer is returned to the caller.
     bool send(uint8 *buf, int length);
 
-    int id() { return _id; }
+    uint16 id() const { return _id; }
     StreamReceiver *receiver() { return _receiver; }
 
 private:
-    const int _id;
+    const uint16 _id;
     StreamReceiver *_receiver;
-    ToitApi *_toit_api;
 };
 
 class ToitApiInternals;
-class ReceiverThread;
+class ToitApiMessageHandler;
 
 class ToitApi {
 public:
-    ToitApi(Program *program, uint8 num_streams, uint32 max_receive_wait_time_ms = 1000);
+    ToitApi(Program *program, uint8 num_streams);
 
     ~ToitApi();
 
@@ -55,13 +53,19 @@ public:
 
     // Registers a stream for communicating with the toit vm
     // stream_id between 0 and num_streams - 1.
-    Stream *register_stream(int stream_id, StreamReceiver *receiver);
+    Stream *register_stream(uint16 stream_id, StreamReceiver *receiver);
 
+    // Requests that the message loop terminates on the toit side
+    void request_stop();
+
+    static ToitApi *instance() { return _instance; }
 private:
-    void dispatch_message_from_vm(int stream_id, uint8* data, int length);
+    void dispatch_message_from_vm(uint16 stream_id, uint8* data, int length);
 
-    ToitApiInternals *internals;
+    ToitApiInternals *_internals;
+    static ToitApi *_instance;
+
     friend Stream;
-    friend ReceiverThread;
+    friend ToitApiMessageHandler;
 };
 }
