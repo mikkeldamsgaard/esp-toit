@@ -5,28 +5,30 @@
 #include "flash_registry.h"
 #include "scheduler.h"
 #include "rtc_memory_esp32.h"
-
+#include "toit_internal.h"
 namespace toit_api {
 using namespace toit;
 
 const int TYPE_BASE = 100;
+const int TYPE_STREAM_START = 200;
 
 enum {
     TYPE_QUIT = TYPE_BASE,
     TYPE_STATUS,
-    TYPE_STREAM_START
+    TYPE_OTA
 };
 
 class ToitApiMessageHandler : public ExternalSystemMessageHandler {
 public:
     explicit ToitApiMessageHandler(VM *vm) : ExternalSystemMessageHandler(vm) {
     }
+    virtual ~ToitApiMessageHandler() = default;;
 
-    virtual void on_message(int sender, int type, void *data, int length);
+    void on_message(int sender, int type, void *data, int length) override;
 };
 
 
-class ToitApiInternals {
+class ToitApiInternals : ToitApiMessageSender {
     ToitApiInternals(Program *program, uint8 num_streams) :
             _program(program), _num_streams(num_streams),
             _streams(_new Stream *[num_streams]), _sender(-1) {
@@ -34,12 +36,15 @@ class ToitApiInternals {
         _vm.load_platform_event_sources();
         _boot_group_id = _vm.scheduler()->next_group_id();
         _message_handler = _new ToitApiMessageHandler(&_vm);
+        _ota_service = _new OtaService(*this, (int)TYPE_OTA);
     }
 
-    ~ToitApiInternals() {
+    virtual ~ToitApiInternals() {
         for (int i = 0; i < _num_streams; i++) {
             if (_streams[i] != null) delete _streams[i];
         }
+        delete _ota_service;
+        delete _message_handler;
         delete _streams;
     }
 
@@ -60,7 +65,8 @@ class ToitApiInternals {
 
         switch (type) {
             case TYPE_QUIT: break;
-            case TYPE_STATUS: break; // TODO(mikkel) Implement some status excahnge
+            case TYPE_STATUS: break; // TODO(mikkel) Implement some status exchange
+            case TYPE_OTA: _ota_service->handle_message(data, length);
             default:
                 int stream_id = type - TYPE_STREAM_START;
 
@@ -97,6 +103,7 @@ class ToitApiInternals {
     ToitApiMessageHandler *_message_handler;
     int _sender;
     int _boot_group_id;
+    OtaService *_ota_service;
 
     friend ToitApi;
     friend Stream;
@@ -106,7 +113,7 @@ class ToitApiInternals {
 
 
 void ToitApiMessageHandler::on_message(int sender, int type, void *data, int length) {
-    printf("[toit_api] Received message with type %d, from sender %d and length %d\n", type, sender, length);
+    // printf("[toit_api] Received message with type %d, from sender %d and length %d\n", type, sender, length);
     ToitApi::instance()->_internals->dispatch_message_from_vm(sender, type, data, length);
 }
 
