@@ -1,3 +1,4 @@
 [submodule "toit"]
 	path = toit
-	url = https://github.com/toitlang/toit
+	url = https://github.com/mikkeldamsgaard/toit.git
+	branch = spottune
