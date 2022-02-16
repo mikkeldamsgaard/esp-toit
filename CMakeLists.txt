@@ -7,22 +7,22 @@ idf_component_register(INCLUDE_DIRS "toit/src" "include"
 
 
 file(GLOB toit_core_SRC
-  "toit/src/*.h"
-  "toit/src/*.c"
-  "toit/src/*.cc"
-  )
+        "toit/src/*.h"
+        "toit/src/*.c"
+        "toit/src/*.cc"
+        )
 
 list(FILTER toit_core_SRC EXCLUDE REGEX "/(toit|toit_run_image).cc$")
 
 file(GLOB toit_resources_SRC
-  "toit/src/resources/*.h"
-  "toit/src/resources/*.cc"
-  )
+        "toit/src/resources/*.h"
+        "toit/src/resources/*.cc"
+        )
 
 file(GLOB toit_event_sources_SRC
-  "toit/src/event_sources/*.h"
-  "toit/src/event_sources/*.cc"
-  )
+        "toit/src/event_sources/*.h"
+        "toit/src/event_sources/*.cc"
+        )
 
 file(GLOB toit_api_source_SRC
         "include/*.h"
@@ -31,26 +31,75 @@ file(GLOB toit_api_source_SRC
 file(GLOB_RECURSE toit_project_SRC FOLLOW_SYMLINKS
         "${CMAKE_HOME_DIRECTORY}/toit/*.toit")
 
-list(APPEND srcs ${toit_resources_SRC} ${toit_event_sources_SRC} ${toit_core_SRC} ${toit_api_source_SRC} )
+list(APPEND srcs ${toit_resources_SRC} ${toit_event_sources_SRC} ${toit_core_SRC} ${toit_api_source_SRC})
+
+set(TOIT_SDK_DIR ${COMPONENT_PATH}/toit/build/host/sdk)
+set(TOIT_COMPILER ${TOIT_SDK_DIR}/bin/toit.compile)
+set(TOIT_INTERPRETER ${TOIT_SDK_DIR}/bin/toit.run)
+
+
+function(toit_postprocess target_name component_path)
+    set(TOIT_INTERPRETER ${component_path}/toit/build/host/sdk/bin/toit.run)
+
+    if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
+        add_custom_target(config.json
+                COMMAND echo "'{\"wifi\":{\"ssid\":\"${CONFIG_ESP32_WIFI_SSID}\",\"password\":\"${CONFIG_ESP32_WIFI_PASSWORD}\"}}'" > config.json
+                )
+
+        idf_build_get_property(elf_name EXECUTABLE_NAME GENERATOR_EXPRESSION)
+
+        add_custom_command(TARGET ${target_name}
+                POST_BUILD
+                COMMAND echo "Merging config.json into ${elf_name}.bin"
+                COMMAND ${TOIT_INTERPRETER} ${component_path}/toit/tools/inject_config.toit config.json ${elf_name}.bin
+                )
+
+        add_dependencies(${target_name} config.json)
+    endif ()
+endfunction()
 
 if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
-    set(TOIT_SDK_DIR ${COMPONENT_PATH}/toit/build/host/sdk)
-    set(TOIT_COMPILER ${TOIT_SDK_DIR}/bin/toit.compile)
-    set(TOIT_INTERPRETER ${TOIT_SDK_DIR}/bin/toit.run)
 
     if (NOT EXISTS ${TOIT_SDK_DIR})
-        message(FATAL_ERROR "Missing Toit host SDK dir. Please run 'make' in the toit dir ${COMPONENT_PATH}/toit" )
-    endif()
+        message(FATAL_ERROR "Missing Toit host SDK dir. Please run 'make' in the toit dir ${COMPONENT_PATH}/toit")
+    endif ()
 
-    add_custom_command(OUTPUT toit_program.s
-            COMMAND ${TOIT_COMPILER} -w toit_program.s --project-root ${CMAKE_HOME_DIRECTORY}/toit ${CMAKE_HOME_DIRECTORY}/toit/main.toit
-            DEPENDS ${toit_project_SRC}
-            VERBATIM)
+    if (CONFIG_ESP_TOIT_USE_JAGUAR)
+        set(JAG_BIN ${COMPONENT_PATH}/jaguar/build/jag)
+        set(TOIT_PKG ${TOIT_SDK_DIR}/bin/toit.pkg)
 
-    add_custom_command(OUTPUT toit_image.S
-            COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot toit_program.s toit_image.S
-            DEPENDS toit_program.s
-            VERBATIM)
+        if (NOT EXISTS ${JAG_BIN})
+            message(FATAL_ERROR "Missing Jaguar binary. Please run 'make' in the jaguar dir ${COMPONENT_PATH}/jaguar")
+        endif ()
+
+        file(GLOB toit_jaguar_source_SRC
+                "${COMPONENT_PATH}/jaguar/src/*.toit"
+                "${COMPONENT_PATH}/jaguar/package.*")
+
+        message("pw=${CONFIG_ESP32_WIFI_PASSWORD} use_jag=${CONFIG_ESP_TOIT_USE_JAGUAR}")
+
+        add_custom_command(OUTPUT toit_program.s
+                COMMAND ${TOIT_PKG} install --project-root=${COMPONENT_PATH}/jaguar
+                COMMAND ${TOIT_COMPILER} -w toit_program.s --project-root ${COMPONENT_PATH}/jaguar ${COMPONENT_PATH}/jaguar/src/jaguar.toit
+                DEPENDS ${toit_jaguar_source_SRC}
+                VERBATIM)
+
+        add_custom_command(OUTPUT toit_image.S
+                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot toit_program.s toit_image.S
+                DEPENDS toit_program.s
+                VERBATIM)
+    else ()
+        add_custom_command(OUTPUT toit_program.s
+                COMMAND ${TOIT_COMPILER} -w toit_program.s --project-root ${CMAKE_HOME_DIRECTORY}/toit ${CMAKE_HOME_DIRECTORY}/toit/main.toit
+                DEPENDS ${toit_project_SRC}
+                VERBATIM)
+
+        add_custom_command(OUTPUT toit_image.S
+                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot toit_program.s toit_image.S
+                DEPENDS toit_program.s
+                VERBATIM)
+    endif ()
+
 
     add_library(toit_image OBJECT toit_image.S)
 
@@ -95,22 +144,29 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
             -UMBEDTLS_CONFIG_FILE
             )
 
+    set(TOIT_GIT_VERSION "$ENV{TOIT_GIT_VERSION}")
+    if ("${TOIT_GIT_VERSION}" STREQUAL "")
+        execute_process(COMMAND sh -c "grep VM_GIT_VERSION ${COMPONENT_PATH}/toit/build/host/build.ninja  | head -1 | tr ' ' '\n' | grep VM_GIT_VERSION | cut -c 21- | sed 's/...$//'"
+                OUTPUT_VARIABLE TOIT_GIT_VERSION)
+        string(STRIP ${TOIT_GIT_VERSION} TOIT_GIT_VERSION)
+    endif()
+
     set_source_files_properties(toit/src/interpreter.cc PROPERTIES COMPILE_FLAGS "-O3 ${TOIT_INTERPRETER_FLAGS} $ENV{LOCAL_INTERPRETER_CXXFLAGS}")
     set_source_files_properties(toit/src/utils.cc PROPERTIES COMPILE_FLAGS "-DTOIT_MODEL=\"\\\"${TOIT_MODEL}\\\"\" -DVM_GIT_INFO=\"\\\"${VM_GIT_INFO}\\\"\" -DVM_GIT_VERSION=\"\\\"${TOIT_GIT_VERSION}\\\"\"")
 
     # Some very specific code, to copy all IDF dependencies to the toit_real target
     __component_get_property(reqs ${component_target} __REQUIRES)
-    foreach(req ${reqs})
-        if(req IN_LIST build_component_targets)
+    foreach (req ${reqs})
+        if (req IN_LIST build_component_targets)
             __component_get_property(req_lib ${req} COMPONENT_LIB)
             set_property(TARGET toit_real APPEND PROPERTY LINK_LIBRARIES ${req_lib})
             set_property(TARGET toit_real APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${req_lib})
-        endif()
-    endforeach()
+        endif ()
+    endforeach ()
     add_dependencies(${COMPONENT_LIB} toit_real)
 
     # Hook up the interface component lib to the static whole archive lib
     #target_link_libraries(${COMPONENT_LIB} INTERFACE toit_real)
     target_link_options(${COMPONENT_LIB} INTERFACE -Wl,--whole-archive esp-idf/esp-toit/libtoit_real.a -Wl,--no-whole-archive)
-endif()
+endif ()
 

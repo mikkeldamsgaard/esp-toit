@@ -1,3 +1,6 @@
 [submodule "toit"]
 	path = toit
 	url = https://github.com/toitlang/toit
+[submodule "jaguar"]
+	path = jaguar
+	url = https://github.com/toitlang/jaguar.git
