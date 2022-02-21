@@ -42,8 +42,11 @@ function(toit_postprocess target_name component_path)
     set(TOIT_INTERPRETER ${component_path}/toit/build/host/sdk/bin/toit.run)
 
     if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
+        string(RANDOM LENGTH 32 rnd_str)
+        string(UUID uuid NAMESPACE "d4a82201-99f1-4b13-874d-20378a6fd609" NAME ${rnd_str} TYPE SHA1)
+
         add_custom_target(config.json
-                COMMAND echo "'{\"wifi\":{\"ssid\":\"${CONFIG_ESP32_WIFI_SSID}\",\"password\":\"${CONFIG_ESP32_WIFI_PASSWORD}\"}}'" > config.json
+                COMMAND echo "'{\"wifi\":{\"ssid\":\"${CONFIG_ESP32_WIFI_SSID}\",\"password\":\"${CONFIG_ESP32_WIFI_PASSWORD}\"},\"name\":\"${PROJECT_NAME}\",\"id\":\"${uuid}\"}'" > config.json
                 )
 
         idf_build_get_property(elf_name EXECUTABLE_NAME GENERATOR_EXPRESSION)
