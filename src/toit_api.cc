@@ -15,7 +15,6 @@ const int TYPE_STREAM_START = 200;
 enum {
     TYPE_QUIT = TYPE_BASE,
     TYPE_STATUS,
-    TYPE_OTA
 };
 
 class ToitApiMessageHandler : public ExternalSystemMessageHandler {
@@ -36,14 +35,12 @@ class ToitApiInternals : ToitApiMessageSender {
         _vm.load_platform_event_sources();
         _boot_group_id = _vm.scheduler()->next_group_id();
         _message_handler = _new ToitApiMessageHandler(&_vm);
-        _ota_service = _new OtaService(*this, (int)TYPE_OTA);
     }
 
     virtual ~ToitApiInternals() {
         for (int i = 0; i < _num_streams; i++) {
             if (_streams[i] != null) delete _streams[i];
         }
-        delete _ota_service;
         delete _message_handler;
         delete _streams;
     }
@@ -66,7 +63,6 @@ class ToitApiInternals : ToitApiMessageSender {
         switch (type) {
             case TYPE_QUIT: break;
             case TYPE_STATUS: break; // TODO(mikkel) Implement some status exchange
-            case TYPE_OTA: _ota_service->handle_message(data, length);
             default:
                 int stream_id = type - TYPE_STREAM_START;
 
@@ -103,7 +99,6 @@ class ToitApiInternals : ToitApiMessageSender {
     ToitApiMessageHandler *_message_handler;
     int _sender;
     int _boot_group_id;
-    OtaService *_ota_service;
 
     friend ToitApi;
     friend Stream;
