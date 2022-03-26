@@ -58,6 +58,8 @@ function(toit_postprocess target_name component_path)
                 )
 
         add_dependencies(${target_name} config.json)
+    else()
+        message("No toit files found, skipping config addition")
     endif ()
 endfunction()
 
@@ -145,6 +147,7 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
             -Wno-error=format
             PUBLIC
             -UMBEDTLS_CONFIG_FILE
+            -Wno-ignored-qualifiers
             )
 
     set(TOIT_GIT_VERSION "$ENV{TOIT_GIT_VERSION}")
