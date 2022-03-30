@@ -144,10 +144,10 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
             -Wall
             -Wno-extra
             -fno-rtti
+            -Wno-ignored-qualifiers
             -Wno-error=format
             PUBLIC
             -UMBEDTLS_CONFIG_FILE
-            -Wno-ignored-qualifiers
             )
 
     set(TOIT_GIT_VERSION "$ENV{TOIT_GIT_VERSION}")
