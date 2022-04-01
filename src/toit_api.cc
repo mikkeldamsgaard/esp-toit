@@ -34,15 +34,9 @@ class ToitApiInternals : ToitApiMessageSender {
             _program(program), _num_streams(num_streams),
             _streams(_new Stream *[num_streams]), _sender(-1) {
         memset(_streams, 0, sizeof(void *) * num_streams);
-      multi_heap_info_t mem_info;
-      heap_caps_get_info(&mem_info, MALLOC_CAP_8BIT);
-      printf("Before event_sources: %d\n", mem_info.total_free_bytes);
-
-      _vm.load_platform_event_sources();
+        _vm.load_platform_event_sources();
         _boot_group_id = _vm.scheduler()->next_group_id();
 
-      heap_caps_get_info(&mem_info, MALLOC_CAP_8BIT);
-      printf("Before message handler: %d\n", mem_info.total_free_bytes);
         _message_handler = _new ToitApiMessageHandler(&_vm);
     }
 
@@ -132,12 +126,7 @@ void ToitApi::set_up() {
 ToitApi::ToitApi(Program *program, uint8 num_streams) {
     ASSERT(_instance == null)
     _instance = this;
-  multi_heap_info_t mem_info;
-  heap_caps_get_info(&mem_info, MALLOC_CAP_8BIT);
-  printf("Before internal: %d\n", mem_info.total_free_bytes);
   _internals = _new ToitApiInternals(program, num_streams);
-  heap_caps_get_info(&mem_info, MALLOC_CAP_8BIT);
-  printf("After internal: %d\n", mem_info.total_free_bytes);
 }
 
 ToitApi::~ToitApi() noexcept {
