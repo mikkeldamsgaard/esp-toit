@@ -119,8 +119,9 @@ ToitApi *ToitApi::_instance = null;
 
 void ToitApi::set_up() {
     RtcMemory::set_up();
-    OS::set_up();
     FlashRegistry::set_up();
+    OS::set_up();
+    GcMetadata::set_up();
 }
 
 ToitApi::ToitApi(Program *program, uint8 num_streams) {

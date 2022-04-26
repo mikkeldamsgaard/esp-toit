@@ -28,18 +28,25 @@ file(GLOB toit_api_source_SRC
         "include/*.h"
         "src/*.cc")
 
+file(GLOB toit_dartino_SRC
+        "toit/src/third_party/dartino/*.h"
+        "toit/src/third_party/dartino/*.cc"
+        )
+
 file(GLOB_RECURSE toit_project_SRC FOLLOW_SYMLINKS
         "${CMAKE_HOME_DIRECTORY}/toit/*.toit")
 
-list(APPEND srcs ${toit_resources_SRC} ${toit_event_sources_SRC} ${toit_core_SRC} ${toit_api_source_SRC})
+list(APPEND srcs ${toit_resources_SRC} ${toit_event_sources_SRC} ${toit_core_SRC} ${toit_api_source_SRC} ${toit_dartino_SRC})
 
 set(TOIT_SDK_DIR ${COMPONENT_PATH}/toit/build/host/sdk)
+set(TOIT_SYSTEM_DIR ${COMPONENT_PATH}/toit/system)
 set(TOIT_COMPILER ${TOIT_SDK_DIR}/bin/toit.compile)
 set(TOIT_INTERPRETER ${TOIT_SDK_DIR}/bin/toit.run)
-
+set(TOIT_SYSTEM_ID "00000000-0000-0000-0000-000000000000")
 
 function(toit_postprocess target_name component_path)
     set(TOIT_INTERPRETER ${component_path}/toit/build/host/sdk/bin/toit.run)
+    set(TOIT_SYSTEM_ID "00000000-0000-0000-0000-000000000000")
 
     if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
         string(RANDOM LENGTH 32 rnd_str)
@@ -54,7 +61,7 @@ function(toit_postprocess target_name component_path)
         add_custom_command(TARGET ${target_name}
                 POST_BUILD
                 COMMAND echo "Merging config.json into ${elf_name}.bin"
-                COMMAND ${TOIT_INTERPRETER} ${component_path}/toit/tools/inject_config.toit config.json ${elf_name}.bin
+                COMMAND ${TOIT_INTERPRETER} ${component_path}/toit/tools/inject_config.toit config.json --unique_id=${TOIT_SYSTEM_ID} ${elf_name}.bin
                 )
 
         add_dependencies(${target_name} config.json)
@@ -69,30 +76,55 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
         message(FATAL_ERROR "Missing Toit host SDK dir. Please run 'make' in the toit dir ${COMPONENT_PATH}/toit")
     endif ()
 
+    add_custom_target(esp32.uuid
+            COMMAND echo ${TOIT_ESP32_UUID} > esp32.uuid)
+
+    add_dependencies(${COMPONENT_LIB} esp32.uuid)
+
     if (CONFIG_ESP_TOIT_USE_JAGUAR)
         set(JAG_BIN ${COMPONENT_PATH}/jaguar/build/jag)
         set(TOIT_PKG ${TOIT_SDK_DIR}/bin/toit.pkg)
 
         if (NOT EXISTS ${JAG_BIN})
-            message(FATAL_ERROR "Missing Jaguar binary. Please run 'make' in the jaguar dir ${COMPONENT_PATH}/jaguar")
+            message(FATAL_ERROR "Missing Jaguar binary. Please run 'make jag' in the jaguar dir ${COMPONENT_PATH}/jaguar")
         endif ()
 
         file(GLOB toit_jaguar_source_SRC
                 "${COMPONENT_PATH}/jaguar/src/*.toit"
                 "${COMPONENT_PATH}/jaguar/package.*")
 
+        file(GLOB toit_system_source_SRC
+                "${TOIT_SYSTEM_DIR}/extensions/esp32/*.toit"
+                "${TOIT_SYSTEM_DIR}/extensions/shared/*.toit"
+                "${TOIT_SYSTEM_DIR}/flash/*.toit"
+                "${TOIT_SYSTEM_DIR}/*.toit")
+
         message("pw=${CONFIG_ESP32_WIFI_PASSWORD} use_jag=${CONFIG_ESP_TOIT_USE_JAGUAR}")
 
         add_custom_command(OUTPUT toit_program.s
-                COMMAND ${TOIT_PKG} install --project-root=${COMPONENT_PATH}/jaguar
-                COMMAND ${TOIT_COMPILER} -w toit_program.s --project-root ${COMPONENT_PATH}/jaguar ${COMPONENT_PATH}/jaguar/src/jaguar.toit
-                DEPENDS ${toit_jaguar_source_SRC}
+                COMMAND ${TOIT_PKG} install --project-root=${TOIT_SYSTEM_DIR}
+                COMMAND ${TOIT_COMPILER} -w toit_program.s --project-root ${TOIT_SYSTEM_DIR} ${TOIT_SYSTEM_DIR}/extensions/esp32/boot.toit
+                DEPENDS ${toit_system_source_SRC}
                 VERBATIM)
 
         add_custom_command(OUTPUT toit_image.S
                 COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot toit_program.s toit_image.S
                 DEPENDS toit_program.s
                 VERBATIM)
+
+        add_custom_command(OUTPUT jaguar.snapshot
+                COMMAND ${TOIT_PKG} install --project-root=${COMPONENT_PATH}/jaguar
+                COMMAND ${TOIT_COMPILER} -w jaguar.snapshot --project-root ${COMPONENT_PATH}/jaguar ${COMPONENT_PATH}/jaguar/src/jaguar.toit
+                DEPENDS ${toit_jaguar_source_SRC}
+                VERBATIM)
+
+        add_custom_target(jaguar.bin
+                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot --unique_id=${TOIT_SYSTEM_ID} -m32 --binary --relocate=0x3c110000 jaguar.snapshot jaguar.bin
+                DEPENDS jaguar.snapshot
+                VERBATIM)
+
+        add_dependencies(${COMPONENT_LIB} jaguar.bin)
+
     else ()
         add_custom_command(OUTPUT toit_program.s
                 COMMAND ${TOIT_COMPILER} -w toit_program.s --project-root ${CMAKE_HOME_DIRECTORY}/toit ${CMAKE_HOME_DIRECTORY}/toit/main.toit
