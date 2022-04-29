@@ -37,4 +37,4 @@ example/.idea/
 example/build/
 example/cmake-build-debug/
 example/components*
-
+esp32.uuid
