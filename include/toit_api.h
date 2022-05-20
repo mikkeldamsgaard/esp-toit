@@ -58,7 +58,12 @@ public:
     // Requests that the message loop terminates on the toit side
     void request_stop();
 
+    // Tries to allocate memory up to 3 times, and if malloc fails, runs a gc.
+    void *safe_malloc(int size, int caps);
+
     static ToitApi *instance() { return _instance; }
+
+
 private:
     void dispatch_message_from_vm(uint16 stream_id, uint8* data, int length);
 

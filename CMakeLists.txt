@@ -202,7 +202,7 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
         endif ()
     endforeach ()
     add_dependencies(${COMPONENT_LIB} toit_real)
-
+    add_dependencies(${COMPONENT_LIB} ${srcs})
     # Hook up the interface component lib to the static whole archive lib
     #target_link_libraries(${COMPONENT_LIB} INTERFACE toit_real)
     target_link_options(${COMPONENT_LIB} INTERFACE -Wl,--whole-archive esp-idf/esp-toit/libtoit_real.a -Wl,--no-whole-archive)

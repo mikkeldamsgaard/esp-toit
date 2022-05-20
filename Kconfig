@@ -1,19 +1,45 @@
 menu "ESP TOIT"
+    config TOIT_ENABLE_IP
+        boolean "Enable IP stack on ESP32"
+        default true
+        help
+            IP support from the toit binary.
+
+    config TOIT_ENABLE_ETHERNET
+        boolean "Enable Ethernet drivers on ESP32"
+        default true
+        depends on TOIT_ENABLE_IP
+        help
+            Ethernet support in the toit binary.
+
+    config TOIT_ENABLE_WIFI
+        boolean "Enable WIFI on ESP32"
+        default true
+        depends on TOIT_ENABLE_IP
+        help
+            WIFI support from the toit binary.
+
     config ESP32_WIFI_SSID
         string "WiFi SSID"
         default "myssid"
+        depends on TOIT_ENABLE_WIFI
         help
             SSID (network name) for the example to connect to.
 
     config ESP32_WIFI_PASSWORD
         string "WiFi Password"
         default "mypassword"
+        depends on TOIT_ENABLE_WIFI
         help
             WiFi password (WPA or WPA2) for the example to use.
 
     config ESP_TOIT_USE_JAGUAR
         boolean "Use Jaguar"
         default true
+        depends on TOIT_ENABLE_WIFI || TOIT_ENABLE_ETHERNET
         help
             Use Jaguar on the device to enable fast reload of toit application code.
+
+
+
 endmenu
