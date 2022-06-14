@@ -119,7 +119,7 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
                 VERBATIM)
 
         add_custom_target(jaguar.bin
-                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot --unique_id=${TOIT_SYSTEM_ID} -m32 --binary --relocate=0x3c110000 jaguar.snapshot jaguar.bin
+                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot --unique_id=${TOIT_SYSTEM_ID} -m32 --binary --offset=0x0 jaguar.snapshot jaguar.bin
                 DEPENDS jaguar.snapshot
                 VERBATIM)
 
