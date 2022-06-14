@@ -1,4 +1,10 @@
 menu "ESP TOIT"
+    config TOIT_CRYPTO
+        boolean "Enable crypto functions on ESP32"
+        default true
+        help
+            This includes certificate and TLS support.
+
     config TOIT_ENABLE_IP
         boolean "Enable IP stack on ESP32"
         default true
@@ -40,6 +46,11 @@ menu "ESP TOIT"
         help
             Use Jaguar on the device to enable fast reload of toit application code.
 
+    config TOIT_USE_SPIRAM
+        boolean "Use SPIRAM for heap"
+        default false
+        help
+            Allocate toit heap in SPIRAM.
 
 
 endmenu
