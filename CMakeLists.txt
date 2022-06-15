@@ -143,11 +143,11 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
     enable_language(C ASM)
 
     target_compile_definitions(${COMPONENT_LIB} INTERFACE
-            -DMBEDTLS_SSL_IN_CONTENT_LEN=6000
-            -DMBEDTLS_SSL_OUT_CONTENT_LEN=3700
-            -DMBEDTLS_PLATFORM_MEMORY=1
-            -DDEPLOY
-            -DESP32)
+            MBEDTLS_SSL_IN_CONTENT_LEN=6000
+            MBEDTLS_SSL_OUT_CONTENT_LEN=3700
+            MBEDTLS_PLATFORM_MEMORY=1
+            DEPLOY
+            ESP32)
 
     target_compile_options(${COMPONENT_LIB} INTERFACE -UMBEDTLS_CONFIG_FILE)
 
