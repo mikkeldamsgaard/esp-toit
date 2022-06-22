@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 # Register without sources, this will create an INTERFACE lib and we can then specify link options later
 idf_component_register(INCLUDE_DIRS "toit/src" "include"
         PRIV_INCLUDE_DIRS ${PRIV_INCLUDES}
-        REQUIRES "esp_adc_cal" "mbedtls" "bt" "app_update" "ulp")
+        REQUIRES "esp_adc_cal" "mbedtls" "bt" "app_update" "ulp" "fatfs")
 
 
 file(GLOB toit_core_SRC
