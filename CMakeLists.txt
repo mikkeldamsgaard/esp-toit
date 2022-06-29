@@ -81,10 +81,16 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
 
     add_dependencies(${COMPONENT_LIB} esp32.uuid)
 
-    if (CONFIG_ESP_TOIT_USE_JAGUAR)
-        set(JAG_BIN ${COMPONENT_PATH}/jaguar/build/jag)
-        set(TOIT_PKG ${TOIT_SDK_DIR}/bin/toit.pkg)
+    set(JAG_BIN ${COMPONENT_PATH}/jaguar/build/jag)
+    set(TOIT_PKG ${TOIT_SDK_DIR}/bin/toit.pkg)
 
+
+    add_custom_command(OUTPUT system.snapshot
+            COMMAND ${TOIT_COMPILER} -w system.snapshot --project-root ${CMAKE_HOME_DIRECTORY}/toit ${CMAKE_HOME_DIRECTORY}/toit/main.toit
+            DEPENDS ${toit_project_SRC}
+            VERBATIM)
+
+    if (CONFIG_ESP_TOIT_USE_JAGUAR)
         if (NOT EXISTS ${JAG_BIN})
             message(FATAL_ERROR "Missing Jaguar binary. Please run 'make jag' in the jaguar dir ${COMPONENT_PATH}/jaguar")
         endif ()
@@ -101,39 +107,20 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
 
         message("pw=${CONFIG_ESP32_WIFI_PASSWORD} use_jag=${CONFIG_ESP_TOIT_USE_JAGUAR}")
 
-        add_custom_command(OUTPUT toit_program.s
-                COMMAND ${TOIT_PKG} install --project-root=${TOIT_SYSTEM_DIR}
-                COMMAND ${TOIT_COMPILER} -w toit_program.s --project-root ${TOIT_SYSTEM_DIR} ${TOIT_SYSTEM_DIR}/extensions/esp32/boot.toit
-                DEPENDS ${toit_system_source_SRC}
-                VERBATIM)
-
-        add_custom_command(OUTPUT toit_image.S
-                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot toit_program.s toit_image.S
-                DEPENDS toit_program.s
-                VERBATIM)
-
         add_custom_command(OUTPUT jaguar.snapshot
                 COMMAND ${TOIT_PKG} install --project-root=${COMPONENT_PATH}/jaguar
                 COMMAND ${TOIT_COMPILER} -w jaguar.snapshot --project-root ${COMPONENT_PATH}/jaguar ${COMPONENT_PATH}/jaguar/src/jaguar.toit
                 DEPENDS ${toit_jaguar_source_SRC}
                 VERBATIM)
 
-        add_custom_target(jaguar.bin
-                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot --unique_id=${TOIT_SYSTEM_ID} -m32 --binary --offset=0x0 jaguar.snapshot jaguar.bin
-                DEPENDS jaguar.snapshot
-                VERBATIM)
-
-        add_dependencies(${COMPONENT_LIB} jaguar.bin)
-
-    else ()
-        add_custom_command(OUTPUT toit_program.s
-                COMMAND ${TOIT_COMPILER} -w toit_program.s --project-root ${CMAKE_HOME_DIRECTORY}/toit ${CMAKE_HOME_DIRECTORY}/toit/main.toit
-                DEPENDS ${toit_project_SRC}
-                VERBATIM)
-
         add_custom_command(OUTPUT toit_image.S
-                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot toit_program.s toit_image.S
-                DEPENDS toit_program.s
+                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot -o toit_image.S system.snapshot jaguar.snapshot
+                DEPENDS system.snapshot jaguar.snapshot
+                VERBATIM)
+    else()
+        add_custom_command(OUTPUT toit_image.S
+                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot -o toit_image.S system.snapshot
+                DEPENDS system.snapshot
                 VERBATIM)
     endif ()
 
