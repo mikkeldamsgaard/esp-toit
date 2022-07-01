@@ -130,13 +130,8 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
     enable_language(C ASM)
 
     target_compile_definitions(${COMPONENT_LIB} INTERFACE
-            MBEDTLS_SSL_IN_CONTENT_LEN=6000
-            MBEDTLS_SSL_OUT_CONTENT_LEN=3700
-            MBEDTLS_PLATFORM_MEMORY=1
             DEPLOY
             ESP32)
-
-    target_compile_options(${COMPONENT_LIB} INTERFACE -UMBEDTLS_CONFIG_FILE)
 
     # Setup the static library, that needs to be --whole-archive included
     add_library(toit_real STATIC ${srcs})
@@ -148,7 +143,6 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
 
     target_compile_definitions(toit_real
             PRIVATE -DRAW=1 -D__FREERTOS__=1
-            PUBLIC -DMBEDTLS_SSL_IN_CONTENT_LEN=6000 -DMBEDTLS_SSL_OUT_CONTENT_LEN=3700 -DMBEDTLS_PLATFORM_MEMORY=1
             -DDEPLOY
             -DESP32
             )
@@ -165,8 +159,6 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
             -fno-rtti
             -Wno-ignored-qualifiers
             -Wno-error=format
-            PUBLIC
-            -UMBEDTLS_CONFIG_FILE
             )
 
     set(TOIT_GIT_VERSION "$ENV{TOIT_GIT_VERSION}")
