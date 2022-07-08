@@ -84,11 +84,17 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
     set(JAG_BIN ${COMPONENT_PATH}/jaguar/build/jag)
     set(TOIT_PKG ${TOIT_SDK_DIR}/bin/toit.pkg)
 
-
-    add_custom_command(OUTPUT system.snapshot
-            COMMAND ${TOIT_COMPILER} -w system.snapshot --project-root ${CMAKE_HOME_DIRECTORY}/toit ${CMAKE_HOME_DIRECTORY}/toit/main.toit
-            DEPENDS ${toit_project_SRC}
-            VERBATIM)
+    if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/boot.toit)
+        add_custom_command(OUTPUT system.snapshot
+                COMMAND ${TOIT_COMPILER} -w system.snapshot --project-root ${CMAKE_HOME_DIRECTORY}/toit ${CMAKE_HOME_DIRECTORY}/toit/boot.toit
+                DEPENDS ${toit_project_SRC}
+                VERBATIM)
+    else()
+        add_custom_command(OUTPUT system.snapshot
+                COMMAND ${TOIT_COMPILER} -w system.snapshot --project-root ${COMPONENT_PATH}/toit/system ${COMPONENT_PATH}/toit/system/extensions/esp32/boot.toit
+                DEPENDS ${toit_project_SRC}
+                VERBATIM)
+    endif()
 
     if (CONFIG_ESP_TOIT_USE_JAGUAR)
         if (NOT EXISTS ${JAG_BIN})
@@ -118,9 +124,14 @@ if (EXISTS ${CMAKE_HOME_DIRECTORY}/toit/main.toit)
                 DEPENDS system.snapshot jaguar.snapshot
                 VERBATIM)
     else()
+        add_custom_command(OUTPUT app.snapshot
+                COMMAND ${TOIT_COMPILER} -w app.snapshot --project-root ${CMAKE_HOME_DIRECTORY}/toit ${CMAKE_HOME_DIRECTORY}/toit/main.toit
+                DEPENDS ${toit_project_SRC}
+                VERBATIM)
+
         add_custom_command(OUTPUT toit_image.S
-                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot -o toit_image.S system.snapshot
-                DEPENDS system.snapshot
+                COMMAND ${TOIT_INTERPRETER} ${TOIT_SDK_DIR}/snapshots/snapshot_to_image.snapshot -o toit_image.S system.snapshot app.snapshot
+                DEPENDS system.snapshot app.snapshot
                 VERBATIM)
     endif ()
 
