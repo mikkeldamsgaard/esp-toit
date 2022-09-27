@@ -1,7 +1,0 @@
-[submodule "toit"]
-	path = toit
-	url = https://github.com/mikkeldamsgaard/toit.git
-	branch = spottune
-[submodule "jaguar"]
-	path = jaguar
-	url = https://github.com/toitlang/jaguar.git
