@@ -41,7 +41,7 @@ class ToitApiMessageHandler;
 
 class ToitApi {
 public:
-    ToitApi(Program *program, uint8 num_streams);
+    ToitApi(uint8 num_streams);
 
     ~ToitApi();
 

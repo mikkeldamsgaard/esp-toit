@@ -64,8 +64,8 @@ public:
 
 
 class ToitApiInternals : ToitApiMessageSender {
-  ToitApiInternals(Program *program, uint8 num_streams) :
-      _program(program), _num_streams(num_streams),
+  ToitApiInternals(uint8 num_streams) :
+      _num_streams(num_streams),
       _streams(_new Stream *[num_streams]), _sender(-1) {
     memset(_streams, 0, sizeof(void *) * num_streams);
     _vm.load_platform_event_sources();
@@ -79,12 +79,13 @@ class ToitApiInternals : ToitApiMessageSender {
       if (_streams[i] != null) delete _streams[i];
     }
     delete _message_handler;
-    delete _streams;
+    delete[] _streams;
   }
 
   Scheduler::ExitState run() {
     _message_handler->start();
-    auto result = _vm.scheduler()->run_boot_program(const_cast<Program *>(_program), _boot_group_id);
+    const uword* table = OS::image_bundled_programs_table();
+    auto result = _vm.scheduler()->run_boot_program(const_cast<Program *>(reinterpret_cast<const Program*>(table[1])), _boot_group_id);
     return result;
   }
 
@@ -134,7 +135,6 @@ class ToitApiInternals : ToitApiMessageSender {
   void *safe_malloc(int size, int caps) { return _message_handler->safe_malloc(size, caps); }
 
   VM _vm;
-  Program *_program;
   const int _num_streams;
   Stream **_streams;
   ToitApiMessageHandler *_message_handler;
@@ -160,13 +160,12 @@ void ToitApi::set_up() {
   FlashRegistry::set_up();
   OS::set_up();
   ObjectMemory::set_up();
-  //GcMetadata::set_up();
 }
 
-ToitApi::ToitApi(Program *program, uint8 num_streams) {
+ToitApi::ToitApi(uint8 num_streams) {
   ASSERT(_instance == null)
   _instance = this;
-  _internals = _new ToitApiInternals(program, num_streams);
+  _internals = _new ToitApiInternals(num_streams);
 }
 
 ToitApi::~ToitApi() noexcept {
