@@ -1,5 +1,6 @@
 #include <multi_heap.h>
 #include <esp_heap_caps.h>
+#include <rtc_memory_esp32.h>
 #include "toit_api.h"
 #include "os.h"
 #include "vm.h"
