@@ -84,7 +84,7 @@ class ToitApiInternals : ToitApiMessageSender {
 
   Scheduler::ExitState run() {
     _message_handler->start();
-    auto result = _vm.scheduler()->run_boot_program(const_cast<Program *>(_program), null, _boot_group_id);
+    auto result = _vm.scheduler()->run_boot_program(const_cast<Program *>(_program), _boot_group_id);
     return result;
   }
 
