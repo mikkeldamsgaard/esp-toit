@@ -35,16 +35,14 @@ public:
     while (true) {
       void *res = heap_caps_malloc(size, caps);
       if (res || !--retries) return res;
-      printf("[toit_api] malloc failed, retries left: %d, size=%d\n",retries+1, size);
-      collect_garbage(retries==1);
-      multi_heap_info_t mem_info;
-      heap_caps_get_info(&mem_info, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
-      size_t allocated_internal = mem_info.total_allocated_bytes;
-      size_t free_internal = mem_info.total_free_bytes;
-      printf("[toit_api] after gc: %d/%d (retries=%d)\n", allocated_internal, free_internal, retries+1);
+//      printf("[toit_api] malloc failed, retries left: %d, size=%d\n",retries+1, size);
+//      collect_garbage(retries==1);
+//      multi_heap_info_t mem_info;
+//      heap_caps_get_info(&mem_info, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+//      size_t allocated_internal = mem_info.total_allocated_bytes;
+//      size_t free_internal = mem_info.total_free_bytes;
+//      printf("[toit_api] after gc: %d/%d (retries=%d)\n", allocated_internal, free_internal, retries+1);
     }
-
-    return null;
   }
 
   bool safe_send(int pid, int type, void* data, int length) {
@@ -54,7 +52,7 @@ public:
       if (!--retries) break;
       fprintf(stdout,"[toit_api] send message failed, retries left: %d\n",retries);
       fflush(stdout);
-      collect_garbage(retries==1);
+      //collect_garbage(retries==1);
     }
 
     return false;
