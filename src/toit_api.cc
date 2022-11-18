@@ -48,16 +48,24 @@ public:
   bool safe_send(int pid, int type, void* data, int length) {
     int retries=3;
     while (true) {
-      if (send(pid, type, data,length)) return true;
-      if (!--retries) break;
-      fprintf(stdout,"[toit_api] send message failed, retries left: %d\n",retries);
+      if (send(pid, type, data,length)) {
+        in_failure_ = false;
+        return true;
+      }
+      if (!--retries) {
+        in_failure_ = true;
+        break;
+      }
+      if (!in_failure_) fprintf(stdout,"[toit_api] send message failed, retries left: %d\n",retries);
       fflush(stdout);
       //collect_garbage(retries==1);
     }
 
     return false;
-
   }
+
+ private:
+  bool in_failure_ = false;
 };
 
 
