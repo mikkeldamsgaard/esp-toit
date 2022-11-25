@@ -4,6 +4,7 @@
 #include "toit_api.h"
 #include "os.h"
 #include "vm.h"
+#include "embedded_data.h"
 #include "top.h"
 #include "flash_registry.h"
 #include "scheduler.h"
@@ -90,9 +91,9 @@ class ToitApiInternals : ToitApiMessageSender {
 
   Scheduler::ExitState run() {
     _message_handler->start();
-    const uword* table = OS::image_bundled_programs_table();
-    auto result = _vm.scheduler()->run_boot_program(const_cast<Program *>(reinterpret_cast<const Program*>(table[1])), _boot_group_id);
-    return result;
+    const EmbeddedDataExtension* extension = EmbeddedData::extension();
+    EmbeddedImage boot = extension->image(0);
+    return _vm.scheduler()->run_boot_program(const_cast<Program*>(boot.program), _boot_group_id);
   }
 
   toit_api::Stream *register_stream(int stream_id, StreamReceiver *receiver, ToitApi *api) {
