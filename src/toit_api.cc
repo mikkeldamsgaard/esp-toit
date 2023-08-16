@@ -89,8 +89,9 @@ class ToitApiInternals : ToitApiMessageSender {
     delete[] _streams;
   }
 
-  Scheduler::ExitState run() {
+  Scheduler::ExitState run(uint8 priority) {
     _message_handler->start();
+    _message_handler->set_priority(priority);
     const EmbeddedDataExtension* extension = EmbeddedData::extension();
     EmbeddedImage boot = extension->image(0);
     return _vm.scheduler()->run_boot_program(const_cast<Program*>(boot.program), _boot_group_id);
@@ -181,8 +182,8 @@ ToitApi::~ToitApi() noexcept {
   _instance = null;
 }
 
-Scheduler::ExitState ToitApi::run() {
-  return _internals->run();
+Scheduler::ExitState ToitApi::run(uint8 priority) {
+  return _internals->run(priority);
 }
 
 Stream *ToitApi::register_stream(uint16 stream_id, StreamReceiver *receiver) {

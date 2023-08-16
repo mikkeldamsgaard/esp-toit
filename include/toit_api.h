@@ -49,7 +49,7 @@ public:
     static void set_up();
 
     // This call blocks until the toit program exists.
-    Scheduler::ExitState run();
+    Scheduler::ExitState run(uint8 priority=Process::PRIORITY_NORMAL);
 
     // Registers a stream for communicating with the toit vm
     // stream_id between 0 and num_streams - 1.
