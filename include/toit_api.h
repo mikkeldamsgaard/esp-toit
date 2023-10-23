@@ -2,10 +2,14 @@
 
 #include "scheduler.h"
 
+#define FREE_DATA(data) free(const_cast<void*>(static_cast<const void *>(data)))
+
 namespace toit_api {
 using namespace toit;
 
 class Stream;
+class ToitApiInternals;
+class ToitApiMessageHandler;
 
 class StreamReceiver {
 public:
@@ -32,12 +36,14 @@ public:
     StreamReceiver *receiver() { return _receiver; }
 
 private:
+    void set_sender(int sender) { sender_ = sender; }
+    int sender() const { return sender_; }
     const uint16 _id;
     StreamReceiver *_receiver;
+    int sender_;
+  friend ToitApiInternals;
 };
 
-class ToitApiInternals;
-class ToitApiMessageHandler;
 
 class ToitApi {
 public:

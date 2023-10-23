@@ -73,7 +73,7 @@ public:
 class ToitApiInternals : ToitApiMessageSender {
   ToitApiInternals(uint8 num_streams) :
       _num_streams(num_streams),
-      _streams(_new Stream *[num_streams]), _sender(-1), _mutex(OS::allocate_mutex(1,"")) {
+      _streams(_new Stream *[num_streams]),  _mutex(OS::allocate_mutex(1,"")) {
     memset(_streams, 0, sizeof(void *) * num_streams);
     _vm.load_platform_event_sources();
     _boot_group_id = _vm.scheduler()->next_group_id();
@@ -105,8 +105,6 @@ class ToitApiInternals : ToitApiMessageSender {
 
   void dispatch_message_from_vm(int sender, int type, void *data, int length) {
     //Locker locker(_mutex);
-    _sender = sender;
-
     switch (type) {
       case TYPE_QUIT:
         break;
@@ -118,29 +116,20 @@ class ToitApiInternals : ToitApiMessageSender {
         if (stream_id < 0 || stream_id >= _num_streams) return; // invalid type/stream_id
 
         Stream *stream = _streams[stream_id];
-
         if (stream == null) return; // ignore unregistered streams
 
+        stream->set_sender(sender);
         stream->receiver()->receive(stream, static_cast<const uint8 *>(data), length);
     }
   }
 
-  bool send_message_to_vm(int type, uint8 *data, int length) {
+  bool send_message_to_vm(int target, int type, uint8 *data, int length) {
     Locker locker(_mutex);
-    if (_sender == -1) {
+    if (target == -1) {
       printf("[toit_api] No sender registered, not sending message\n");
       return false;
     }
-    return _message_handler->safe_send(_sender, type, data, length);
-  }
-
-  void request_stop() {
-    Locker locker(_mutex);
-    int length = 1;
-    uint8 *dummy = unvoid_cast<uint8 *>(malloc(length));
-    if (!_message_handler->send(_sender, TYPE_QUIT, dummy, 0)) {
-      free(dummy);
-    }
+    return _message_handler->safe_send(target, type, data, length);
   }
 
   void *safe_malloc(int size, int caps) {
@@ -152,13 +141,11 @@ class ToitApiInternals : ToitApiMessageSender {
   const int _num_streams;
   Stream **_streams;
   ToitApiMessageHandler *_message_handler;
-  int _sender;
   int _boot_group_id;
   Mutex* _mutex;
   friend ToitApi;
   friend Stream;
   friend ToitApiMessageHandler;
-
 };
 
 
@@ -196,16 +183,12 @@ Stream *ToitApi::register_stream(uint16 stream_id, StreamReceiver *receiver) {
   return _internals->register_stream(stream_id, receiver, this);
 }
 
-void ToitApi::request_stop() {
-  _internals->request_stop();
-}
-
 void *ToitApi::safe_malloc(int size, int caps) {
   return _internals->safe_malloc(size, caps);
 }
 
 bool Stream::send(uint8 *buf, int length) {
-  return ToitApi::instance()->_internals->send_message_to_vm(TYPE_STREAM_START + id(), buf, length);
+  return ToitApi::instance()->_internals->send_message_to_vm(sender(), TYPE_STREAM_START + id(), buf, length);
 }
 
 
